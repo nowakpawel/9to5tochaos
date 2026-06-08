@@ -81,7 +81,7 @@ void DialogSystem::render(Renderer& r) {
     // Choices
     float choiceY = boxY + 110.0f;
     for (int i = 0; i < (int)node->choices.size(); ++i) {
-        char prefix[8];
+        char prefix[16];
         snprintf(prefix, sizeof(prefix), "[%d] ", i+1);
         std::string choiceText = prefix + node->choices[i].text;
         r.drawText2D(20.0f, choiceY, 1.5f, 0.8f, 1.0f, 0.8f, choiceText.c_str());
