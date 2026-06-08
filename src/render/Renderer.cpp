@@ -382,7 +382,7 @@ void Renderer::drawChar2D(float x, float y, float scale, float r, float g, float
     for (int row = 0; row < 8; ++row) {
         uint8_t mask = glyph[row];
         for (int col = 0; col < 8; ++col) {
-            if (mask & (0x80 >> col)) {
+            if (mask & (1 << col)) {
                 drawRect2D(x + col * scale, y + row * scale, scale, scale, r, g, b, 1.0f);
             }
         }

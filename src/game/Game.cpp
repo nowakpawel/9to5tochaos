@@ -459,13 +459,36 @@ std::string Game::getInteractPrompt() const {
     if (m_nearObject) {
         if (m_phase->isWorkPhase()) {
             Task* t = m_tasks->getActiveTask(m_nearObject->type);
-            if (t) return "[E] " + t->description;
+            if (t && !t->completed) {
+                if (m_holdingE && t->inProgress) {
+                    int pct = static_cast<int>(t->progress * 100.0f);
+                    return "[E] " + t->description + " - " + std::to_string(pct) + "%";
+                }
+                float dur = t->interactDuration;
+                return "[E przytrzymaj " + std::to_string(static_cast<int>(dur)) +
+                       " sek] " + t->description;
+            }
+            // Object present but no matching task right now
+            return m_nearObject->label + " (nie potrzebne teraz)";
         } else if (m_phase->isSabotagePhase() && !m_sabotageCompletedToday) {
+            const char* action = nullptr;
+            float dur = 0;
             switch (m_nearObject->type) {
-                case ObjectType::PRINTER:     return "[E trzymaj] Zaciej drukarke";
-                case ObjectType::TERMINAL:    return "[E trzymaj] Zatwierdz blad w kodzie";
-                case ObjectType::SERVER_RACK: return "[E trzymaj] Zablokuj Active Directory";
+                case ObjectType::PRINTER:
+                    action = "Zaciej drukarke"; dur = 2.0f; break;
+                case ObjectType::TERMINAL:
+                    action = "Zatwierdz blad w kodzie"; dur = 3.0f; break;
+                case ObjectType::SERVER_RACK:
+                    action = "Zablokuj Active Directory"; dur = 4.0f; break;
                 default: break;
+            }
+            if (action) {
+                if (m_holdingE && m_sabotageProgress.active) {
+                    int pct = static_cast<int>(m_sabotageProgress.progress * 100.0f);
+                    return std::string("[E] ") + action + " - " + std::to_string(pct) + "%";
+                }
+                return "[E przytrzymaj " + std::to_string(static_cast<int>(dur)) +
+                       " sek] " + action;
             }
         }
         return m_nearObject->label;
@@ -476,12 +499,22 @@ std::string Game::getInteractPrompt() const {
 std::string Game::getCurrentObjective() const {
     if (m_phase->isWorkPhase()) {
         for (const auto& t : m_tasks->tasks) {
-            if (!t.completed) return "Zadanie: " + t.description;
+            if (!t.completed) {
+                // Add location hint per task type
+                const char* where = "";
+                switch (t.targetObject) {
+                    case ObjectType::SERVER_RACK:   where = " -> Pokoj serwerowy"; break;
+                    case ObjectType::PRINTER:        where = " -> Drukarka (prawy rog)"; break;
+                    case ObjectType::TERMINAL:       where = " -> Biurko Kamila"; break;
+                    default: break;
+                }
+                return "PRACA: " + t.description + where;
+            }
         }
-        return "Zadania ukonczone! Czekaj na sabotaz.";
+        return "Zadania ukonczone! Czekaj na godz. 12:00.";
     } else if (m_phase->isSabotagePhase()) {
-        if (m_sabotageCompletedToday) return "Sabotaz wykonany! Czekaj na koniec dnia.";
-        return "Czas na sabotaz! (12:00-17:00)";
+        if (m_sabotageCompletedToday) return "Sabotaz wykonany! Koniec o 17:00.";
+        return "SABOTAZ: Drukarka / Terminal / Serwer - przytrzymaj E";
     }
     return "Koniec dnia";
 }
